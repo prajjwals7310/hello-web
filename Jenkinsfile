@@ -5,7 +5,7 @@ pipeline {
  environment {
    REGISTRY        = "192.168.1.138:8082"
    IMAGE_NAME      = "hello-web"
-   IMAGE_TAG       = "1.0.0"
+   IMAGE_TAG       = "1.0.1"
    NEXUS_CREDS_ID  = "nexus-docker"
    KUBECONFIG      = '/home/jenkins/.kube/config'
  }
@@ -54,11 +54,12 @@ pipeline {
      steps {
        withCredentials([usernamePassword(credentialsId: env.NEXUS_CREDS_ID, usernameVariable: 'NUSER', passwordVariable: 'NPASS')]) {
          sh """
-           kubectl delete secret regcred --ignore-not-found
+           kubectl delete secret regcred --ignore-not-found -n hello
            kubectl create secret docker-registry regcred \
              --docker-server=${REGISTRY} \
              --docker-username="${NUSER}" \
-             --docker-password="${NPASS}"
+             --docker-password="${NPASS}" \
+             -n hello
          """
        }
      }
@@ -66,22 +67,20 @@ pipeline {
 
 
    stage('Deploy to Minikube') {
- steps {
-   sh '''
-     # Ensure namespace exists (if using one)
-     kubectl get ns hello || kubectl create ns hello
-
-
-     # Apply manifests
-     sed "s|REPLACE_REGISTRY|${REGISTRY}|g" k8s/deployment.yaml | kubectl apply -f -
-     kubectl apply -f k8s/service.yaml
-
-
-     # Wait for rollout (specify namespace if needed)
-     kubectl rollout status deployment/hello-web -n hello --timeout=120s
-   '''
- }
-}
+     steps {
+       sh """
+         # Ensure namespace exists
+         kubectl create namespace hello --dry-run=client -o yaml | kubectl apply -f -
+         
+         # Apply manifests - direct files use karo kyunki root directory mein hain
+         sed "s|REPLACE_REGISTRY|${REGISTRY}|g" deployment.yaml | kubectl apply -n hello -f -
+         kubectl apply -n hello -f service.yaml
+         
+         # Wait for rollout
+         kubectl rollout status deployment/hello-web -n hello --timeout=120s
+       """
+     }
+   }
 
 
  }
@@ -89,7 +88,12 @@ pipeline {
 
  post {
    always {
-     sh 'kubectl get pods,svc -o wide || true'
+     sh '''
+       echo "=== Pods Status ==="
+       kubectl get pods -n hello -o wide
+       echo "=== Services Status ==="  
+       kubectl get svc -n hello -o wide
+     '''
    }
  }
 }
