@@ -1,20 +1,31 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
- name: hello-web
- namespace: hello
+  name: hello-web
+  namespace: hello
+  labels:
+    app: hello-web
 spec:
- replicas: 1
- selector:
-   matchLabels: { app: hello-web }
- template:
-   metadata: { labels: { app: hello-web } }
-   spec:
-     imagePullSecrets:
-       - name: regcred
-     containers:
-       - name: hello-web
-         image: REPLACE_REGISTRY/hello-web:1.0.0
-         imagePullPolicy: IfNotPresent
-         ports:
-           - containerPort: 9090
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello-web
+  template:
+    metadata:
+      labels:
+        app: hello-web
+    spec:
+      imagePullSecrets:
+      - name: regcred
+      containers:
+      - name: hello-web
+        image: REPLACE_REGISTRY/hello-web:1.0.0
+        ports:
+        - containerPort: 9090  # ✅ YEH SAHI PORT HAI
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
