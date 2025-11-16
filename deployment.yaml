@@ -19,7 +19,7 @@ spec:
       - name: regcred
       containers:
       - name: hello-web
-        image: REPLACE_REGISTRY/hello-web:1.0.0
+        image: REPLACE_REGISTRY/hello-web:1.0.1
         ports:
         - containerPort: 9090  # ✅ YEH SAHI PORT HAI
         resources:
@@ -29,3 +29,4 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
+
